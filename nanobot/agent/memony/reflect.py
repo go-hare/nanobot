@@ -1,14 +1,14 @@
 """
 反思模块 (Reflect Module)
 
-实现 Stanford GA 的反思机制：
-1. 监控累积重要性，达到阈值时触发反思
-2. 生成高层次反思问题
-3. 检索相关记忆
-4. 使用LLM生成洞见
-5. 将洞见存回记忆流
+Implement Stanford GA's reflection mechanism:
+1. monitor accumulated importance, trigger reflection when threshold is reached
+2. generate high-level reflection questions
+3. retrieve relevant memories
+4. generate insights using LLM
+5. store insights back into memory stream
 
-参考：Stanford Generative Agents 论文
+References: Stanford Generative Agents paper
 """
 
 from typing import List, Dict, Any, Optional, Tuple
@@ -22,34 +22,34 @@ TAG = __name__
 
 class ReflectModule:
     """
-    反思模块 - 从经历中提取高层次洞见
+    reflection module - extract high-level insights from experiences
     
-    这是 Stanford GA 认知循环的第二步：Reflect
+    This is the second step of Stanford GA's cognitive loop: Reflect
     """
     
     def __init__(
         self,
-        threshold: int = 150,  # 累积重要性阈值
-        depth: int = 3,  # 每次反思生成的洞见数量
-        min_time_interval: float = 3600,  # 最小反思间隔（秒），默认1小时
-        enabled: bool = True,  # 是否启用反思
+        threshold: int = 150,  # accumulated importance threshold
+        depth: int = 3,  # number of insights generated per reflection
+        min_time_interval: float = 3600,  # minimum reflection interval (seconds), default 1 hour
+        enabled: bool = True,  # whether to enable reflection
     ):
         """
-        初始化反思模块
+        initialize reflection module
         
         Args:
-            threshold: 累积重要性阈值，达到此值时触发反思
-            depth: 每次反思生成的洞见数量
-            min_time_interval: 最小反思间隔（秒）
-            enabled: 是否启用反思
+            threshold: accumulated importance threshold, trigger reflection when reached
+            depth: number of insights generated per reflection
+            min_time_interval: minimum reflection interval (seconds), default 1 hour
+            enabled: whether to enable reflection
         """
         self.threshold = threshold
         self.depth = depth
         self.min_time_interval = min_time_interval
         self.enabled = enabled
         
-        # 反思状态
-        # 初始化为0，使得首次反思不受时间间隔限制
+        # reflection state
+        # initialize to 0, so that the first reflection is not limited by the time interval
         self.last_reflection_time: float = 0.0
         self.accumulated_importance: int = 0
         
@@ -64,14 +64,14 @@ class ReflectModule:
         current_time: Optional[float] = None
     ) -> bool:
         """
-        判断是否应该触发反思
+        check if should trigger reflection
         
         Args:
-            accumulated_importance: 当前累积重要性（可选，如果不提供则使用内部状态）
-            current_time: 当前时间戳（可选）
+            accumulated_importance: current accumulated importance (optional, if not provided use internal state)
+            current_time: current timestamp (optional)
         
         Returns:
-            是否应该反思
+            whether to trigger reflection
         """
         if not self.enabled:
             return False
@@ -79,13 +79,13 @@ class ReflectModule:
         if current_time is None:
             current_time = time.time()
         
-        # 使用提供的累积重要性或内部状态
+        # use provided accumulated importance or internal state
         importance = accumulated_importance if accumulated_importance is not None else self.accumulated_importance
         
-        # 检查1：累积重要性是否达到阈值
+        # check 1: accumulated importance threshold reached
         importance_threshold_met = importance >= self.threshold
         
-        # 检查2：距离上次反思是否超过最小时间间隔
+        # check 2: time interval since last reflection exceeded minimum interval
         time_elapsed = current_time - self.last_reflection_time
         time_interval_met = time_elapsed >= self.min_time_interval
         
@@ -108,27 +108,23 @@ class ReflectModule:
         llm = None
     ) -> List[str]:
         """
-        生成反思问题
+        generate reflection questions
         
-        根据Stanford GA论文，反思问题应该是高层次的、开放性的问题，
-        例如："用户最近关心什么？"、"用户的情绪如何变化？"
-        
-        支持两种模式：
-        1. 模板模式（默认）：使用预定义模板快速生成
-        2. LLM模式：使用LLM动态生成更个性化的问题
+        According to Stanford GA paper, reflection questions should be high-level, open-ended questions,
+        for example: "What is the user interested in recently?", "How is the user's emotion changing?"
         
         Args:
-            agent_name: Agent名称
-            recent_memories: 最近的记忆列表
-            focus_points: 关注点（可选），例如["情绪", "兴趣", "关系"]
-            use_llm: 是否使用LLM动态生成问题
-            llm: LLM实例（use_llm=True时需要）
+            agent_name: Agent name
+            recent_memories: recent memory list
+            focus_points: focus points (optional), for example: ["emotion", "interest", "relationship"]
+            use_llm: whether to use LLM to generate questions
+            llm: LLM instance (required when use_llm=True)
         
         Returns:
-            反思问题列表
+            reflection questions list
         """
         if use_llm and llm:
-            # 使用 LLM 动态生成问题（Stanford GA 原始设计）
+            # use LLM to generate questions (Stanford GA original design)
             return self._generate_questions_with_llm(
                 agent_name=agent_name,
                 recent_memories=recent_memories,
@@ -136,7 +132,7 @@ class ReflectModule:
                 num_questions=self.depth
             )
         
-        # 使用模板生成（快速模式）
+        # use template to generate questions (fast mode)
         return self._generate_questions_from_template(
             agent_name=agent_name,
             focus_points=focus_points
@@ -148,36 +144,36 @@ class ReflectModule:
         focus_points: Optional[List[str]] = None
     ) -> List[str]:
         """
-        使用模板生成反思问题（快速模式）
+        use template to generate reflection questions (fast mode)
         
         Args:
-            agent_name: Agent名称
-            focus_points: 关注点列表
+            agent_name: Agent name
+            focus_points: focus points list
             
         Returns:
-            问题列表
+            questions list
         """
         if not focus_points:
-            focus_points = ["核心关注", "情绪状态", "行为模式"]
+            focus_points = ["core focus", "emotion state", "behavior mode"]
         
         questions = []
         
-        # 为每个关注点生成一个问题
+        # generate one question for each focus point
         for focus in focus_points[:self.depth]:
-            if focus == "核心关注":
-                question = f"{agent_name}最近最关心的是什么？有哪些重要的话题或事件？"
-            elif focus == "情绪状态":
-                question = f"{agent_name}最近的情绪状态如何？有什么情绪变化吗？"
-            elif focus == "行为模式":
-                question = f"{agent_name}最近的行为模式有什么特点？有什么值得注意的习惯或倾向？"
-            elif focus == "关系":
-                question = f"{agent_name}与他人的关系如何？有什么重要的社交互动吗？"
-            elif focus == "目标":
-                question = f"{agent_name}最近有什么目标或计划吗？进展如何？"
-            elif focus == "需求":
-                question = f"{agent_name}当前有什么需求或期待吗？"
+            if focus == "core focus":
+                question = f"{agent_name} What are the most important topics or events that {agent_name} is interested in recently?"
+            elif focus == "emotion state":
+                question = f"{agent_name} How is the user's emotion changing recently?"
+            elif focus == "behavior mode":
+                question = f"{agent_name} What are the user's recent behavior patterns? What are the user's recent habits or tendencies?"
+            elif focus == "relationship":
+                question = f"{agent_name} How is the user's relationship with others? What are the user's important social interactions?"
+            elif focus == "target":
+                question = f"{agent_name} What are the user's recent targets or plans? How is the user's progress?"
+            elif focus == "demand":
+                question = f"{agent_name} What are the user's current demands or expectations?"
             else:
-                question = f"关于{focus}，{agent_name}最近有什么值得注意的表现吗？"
+                question = f"About {focus}, what are the user's recent notable？"
             
             questions.append(question)
         
@@ -193,57 +189,54 @@ class ReflectModule:
         num_questions: int = 3
     ) -> List[str]:
         """
-        使用 LLM 动态生成反思问题（Stanford GA 原始设计）
-        
-        这是 Stanford GA 论文中的原始设计：
-        基于最近的记忆，让 LLM 生成高层次的反思问题
+        use LLM to generate reflection questions (Stanford GA original design)
         
         Args:
-            agent_name: Agent名称
-            recent_memories: 最近的记忆列表
-            llm: LLM实例
-            num_questions: 生成的问题数量
+            agent_name: Agent name
+            recent_memories: recent memory list
+            llm: LLM instance
+            num_questions: number of questions to generate
             
         Returns:
-            问题列表
+            questions list
         """
         import asyncio
         
-        # 格式化最近的记忆
+        # format recent memories
         memories_text = self._format_memories_for_prompt(recent_memories[:20])
         
-        # 构建 prompt（参考 Stanford GA 原始设计）
+        # build prompt (reference Stanford GA original design)
         prompt = f"""
-{agent_name}最近有以下经历和对话：
+{agent_name} has the following experiences and conversations recently:
 
 {memories_text}
 
-基于以上内容，请生成{num_questions}个高层次的反思问题。
-这些问题应该帮助{agent_name}更好地理解：
-- 关系和社交动态
-- 当前的关注点和担忧
-- 兴趣和期待
-- 情绪模式和变化
+Based on the above content, please generate {num_questions} high-level reflection questions.
+These questions should help {agent_name} better understand:
+- relationship and social dynamics
+- current focus and concerns
+- interests and expectations
+- emotional patterns and changes
 
-要求：
-1. 问题应该是开放性的，需要深入思考
-2. 问题应该基于具体的记忆内容，而不是泛泛而谈
-3. 每个问题一行，不要编号
+Requirements:
+1. The questions should be open-ended, requiring deep thinking
+2. The questions should be based on specific memory content, not general discussion
+3. Each question should be on a separate line, no numbering
 
-请生成{num_questions}个问题：
+Please generate {num_questions} questions:
 """
         
         try:
-            # 同步调用（如果在异步上下文中）
+            # synchronous call (if in asynchronous context)
             if asyncio.iscoroutinefunction(getattr(llm, 'response_no_stream', None)):
-                # 需要在异步环境中运行
+                # needs to run in asynchronous environment
                 loop = asyncio.get_event_loop()
                 if loop.is_running():
-                    # 在已运行的事件循环中，使用 run_coroutine_threadsafe
+                    # in running event loop, use run_coroutine_threadsafe
                     import concurrent.futures
                     future = asyncio.run_coroutine_threadsafe(
                         llm.response_no_stream(
-                            system_prompt="你是一个善于提出深刻问题的AI助手。请只返回问题，不要添加其他内容。",
+                            system_prompt="You are a helpful AI assistant that is good at asking deep questions. Please only return questions, do not add any other content.",
                             user_prompt=prompt,
                             max_tokens=200
                         ),
@@ -253,7 +246,7 @@ class ReflectModule:
                 else:
                     response = loop.run_until_complete(
                         llm.response_no_stream(
-                            system_prompt="你是一个善于提出深刻问题的AI助手。请只返回问题，不要添加其他内容。",
+                            system_prompt="You are a helpful AI assistant that is good at asking deep questions. Please only return questions, do not add any other content.",
                             user_prompt=prompt,
                             max_tokens=200
                         )
@@ -261,24 +254,24 @@ class ReflectModule:
             elif hasattr(llm, 'generate_sync'):
                 response = llm.generate_sync(prompt)
             else:
-                # 降级到模板模式
+                # downgrade to template mode
                 logger.bind(tag=TAG).warning("LLM not compatible for sync call, falling back to template")
                 return self._generate_questions_from_template(agent_name)
             
-            # 解析响应
+            # parse response
             questions = [q.strip() for q in response.strip().split('\n') if q.strip()]
             
-            # 过滤掉太短的行（可能是编号或空行）
+            # filter out too short lines (可能是编号或空行)
             questions = [q for q in questions if len(q) > 10]
             
-            # 限制数量
+            # limit number
             questions = questions[:num_questions]
             
             if questions:
                 logger.bind(tag=TAG).info(f"Generated {len(questions)} reflection questions (LLM mode)")
                 return questions
             else:
-                # 如果 LLM 没有生成有效问题，降级到模板模式
+                # if LLM did not generate valid questions, fallback to template mode
                 logger.bind(tag=TAG).warning("LLM generated no valid questions, falling back to template")
                 return self._generate_questions_from_template(agent_name)
                 
@@ -294,51 +287,51 @@ class ReflectModule:
         num_questions: int = 3
     ) -> List[str]:
         """
-        异步版本：使用 LLM 动态生成反思问题
+        asynchronous version: use LLM to generate reflection questions
         
         Args:
-            agent_name: Agent名称
-            recent_memories: 最近的记忆列表
-            llm: LLM实例（支持 LiteLLMProvider 或有 response_no_stream 方法的实例）
-            num_questions: 生成的问题数量
+            agent_name: Agent name
+            recent_memories: recent memory list
+            llm: LLM instance (supports LiteLLMProvider or has response_no_stream method)
+            num_questions: number of questions to generate
             
         Returns:
-            问题列表
+            questions list
         """
-        # 格式化最近的记忆
+        # format recent memories
         memories_text = self._format_memories_for_prompt(recent_memories[:20])
         
-        # 构建 prompt
+        # build prompt
         prompt = f"""
-{agent_name}最近有以下经历和对话：
+{agent_name} has the following experiences and conversations recently:
 
 {memories_text}
 
-基于以上内容，请生成{num_questions}个高层次的反思问题。
-这些问题应该帮助{agent_name}更好地理解：
-- 关系和社交动态
-- 当前的关注点和担忧
-- 兴趣和期待
-- 情绪模式和变化
+Based on the above content, please generate {num_questions} high-level reflection questions.
+These questions should help {agent_name} better understand:
+- relationship and social dynamics
+- current focus and concerns
+- interests and expectations
+- emotional patterns and changes
 
-要求：
-1. 问题应该是开放性的，需要深入思考
-2. 问题应该基于具体的记忆内容，而不是泛泛而谈
-3. 每个问题一行，不要编号
+Requirements:
+1. The questions should be open-ended, requiring deep thinking
+2. The questions should be based on specific memory content, not general discussion
+3. Each question should be on a separate line, no numbering
 
-请生成{num_questions}个问题：
+Please generate {num_questions} questions:
 """
         
         try:
-            # 使用统一的 LLM 调用方法
+            # use unified LLM call method
             response = await self._call_llm(
                 llm=llm,
-                system_prompt="你是一个善于提出深刻问题的AI助手。请只返回问题，不要添加其他内容。",
+                system_prompt="You are a helpful AI assistant that is good at asking deep questions. Please only return questions, do not add any other content.",
                 user_prompt=prompt,
                 max_tokens=200
             )
             
-            # 解析响应
+            # parse response
             questions = [q.strip() for q in response.strip().split('\n') if q.strip()]
             questions = [q for q in questions if len(q) > 10]
             questions = questions[:num_questions]
@@ -355,16 +348,16 @@ class ReflectModule:
     
     def _format_memories_for_prompt(self, memories: List[ConceptNode]) -> str:
         """
-        格式化记忆列表用于 prompt
+        format memory list for prompt
         
         Args:
-            memories: 记忆列表
+            memories: memory list
             
         Returns:
-            格式化的字符串
+            formatted string
         """
         if not memories:
-            return "（暂无记忆）"
+            return "(no memory)"
         
         formatted = []
         for i, mem in enumerate(memories, 1):
@@ -390,47 +383,47 @@ class ReflectModule:
         questions: List[str],
         relevant_memories: List[Tuple[ConceptNode, float]],
         llm,
-        agent_name: str = "用户"
+        agent_name: str = "user"
     ) -> List[Dict[str, Any]]:
         """
-        基于问题和相关记忆，使用LLM生成洞见
+        generate insights based on questions and relevant memories using LLM
         
         Args:
-            questions: 反思问题列表
-            relevant_memories: 相关记忆列表（记忆节点，相关性分数）
-            llm: LLM实例（支持 LiteLLMProvider 或有 response_no_stream 方法的实例）
-            agent_name: Agent名称
+            questions: reflection questions list
+            relevant_memories: relevant memories list (memory node, relevance score)
+            llm: LLM instance (supports LiteLLMProvider or has response_no_stream method)
+            agent_name: Agent name
         
         Returns:
-            洞见列表，每个洞见包含：
-            - question: 问题
-            - insight: 洞见内容
-            - evidence: 支持证据（记忆ID列表）
-            - importance: 重要性评分
+            insights list, each insight contains:
+            - question: question
+            - insight: insight content
+            - evidence: support evidence (memory ID list)
+            - importance: importance score
         """
         insights = []
         
         for question in questions:
             try:
-                # 构造反思prompt
+                # build reflection prompt
                 prompt = self._build_reflection_prompt(
                     question=question,
                     memories=relevant_memories,
                     agent_name=agent_name
                 )
                 
-                # 使用LLM生成洞见 - 支持多种LLM接口
+                # use LLM to generate insights - supports multiple LLM interfaces
                 insight_text = await self._call_llm(
                     llm=llm,
-                    system_prompt="你是一个善于观察和总结的AI助手，能够从对话中提取深层洞见。",
+                    system_prompt="You are a helpful AI assistant that is good at observing and summarizing. You can extract deep insights from conversations.",
                     user_prompt=prompt,
                     max_tokens=300
                 )
                 
-                # 提取支持证据（相关记忆的ID）
+                # extract support evidence (memory ID)
                 evidence = [node.node_id for node, score in relevant_memories[:5]]
                 
-                # 评估洞见的重要性（反思生成的洞见默认较高重要性）
+                # assess insight importance (reflection generated insights have default higher importance)
                 importance = self._assess_insight_importance(insight_text, question)
                 
                 insight = {
@@ -458,23 +451,23 @@ class ReflectModule:
         max_tokens: int = 300
     ) -> str:
         """
-        调用LLM生成文本 - 兼容多种LLM接口
+        call LLM to generate text - supports multiple LLM interfaces
         
-        支持：
-        1. LiteLLMProvider（使用 chat 方法）
-        2. 有 response_no_stream 方法的 LLM
-        3. 有 generate 方法的 LLM
+        Supports:
+        1. LiteLLMProvider (using chat method)
+        2. LLM with response_no_stream method
+        3. LLM with generate method
         
         Args:
-            llm: LLM实例
-            system_prompt: 系统提示词
-            user_prompt: 用户提示词
-            max_tokens: 最大token数
+            llm: LLM instance
+            system_prompt: system prompt
+            user_prompt: user prompt
+            max_tokens: maximum token number
         
         Returns:
-            生成的文本
+            generated text
         """
-        # 优先使用 chat 方法（LiteLLMProvider 的标准接口）
+        # use chat method (LiteLLMProvider standard interface)
         if hasattr(llm, 'chat'):
             messages = [
                 {"role": "system", "content": system_prompt},
@@ -488,7 +481,7 @@ class ReflectModule:
             )
             return response.content or ""
         
-        # 回退到 response_no_stream 方法
+        # fallback to response_no_stream method
         if hasattr(llm, 'response_no_stream'):
             return await llm.response_no_stream(
                 system_prompt=system_prompt,
@@ -496,7 +489,7 @@ class ReflectModule:
                 max_tokens=max_tokens
             )
         
-        # 回退到 generate 方法
+        # fallback to generate method
         if hasattr(llm, 'generate'):
             full_prompt = f"{system_prompt}\n\n{user_prompt}"
             return await llm.generate(full_prompt)
@@ -510,73 +503,75 @@ class ReflectModule:
         agent_name: str
     ) -> str:
         """
-        构造反思提示词
+        build reflection prompt
         
         Args:
-            question: 反思问题
-            memories: 相关记忆列表
-            agent_name: Agent名称
+            question: reflection question
+            memories: relevant memories list
+            agent_name: Agent name
         
         Returns:
-            完整的prompt
+            complete prompt
         """
-        # 格式化记忆列表
+        # format memory list
         memory_texts = []
-        for i, (node, score) in enumerate(memories[:20], 1):  # 限制在20条记忆内
+        for i, (node, score) in enumerate(memories[:20], 1):  # limit to 20 memories
             age_hours = node.get_age_hours()
             memory_texts.append(
-                f"{i}. [{age_hours:.1f}小时前, 重要性{node.importance}] {node.content}"
+                f"{i}. [{age_hours:.1f} hours ago, importance {node.importance}] {node.content}"
             )
         
-        memories_section = "\n".join(memory_texts) if memory_texts else "（暂无相关记忆）"
+        memories_section = "\n".join(memory_texts) if memory_texts else "(no relevant memories)"
         
         prompt = f"""
-基于以下{agent_name}的记忆，请回答这个问题：
+Based on the following memories of {agent_name}, please answer this question:
 
-问题：{question}
+Question: {question} 
 
-相关记忆：
+Relevant memories:
 {memories_section}
 
-请综合以上记忆，给出一个深刻的洞见（2-3句话）。
-洞见应该：
-1. 总结关键模式或趋势
-2. 基于具体记忆，而非泛泛而谈
-3. 对理解{agent_name}有帮助
+Please synthesize the above memories and give a deep insight (2-3 sentences).
+Insights should:
+1. summarize key patterns or trends
+2. based on specific memories, not general discussion
+3. help understand {agent_name}
 
-洞见：
+Insights:
 """
         
         return prompt
     
     def _assess_insight_importance(self, insight: str, question: str) -> int:
         """
-        评估洞见的重要性
+        assess insight importance
         
         Args:
-            insight: 洞见内容
-            question: 原始问题
+            insight: insight content
+            question: original question
         
         Returns:
-            重要性评分（1-10）
+            importance score (1-10)
         """
-        # 反思生成的洞见默认有较高重要性（7-9）
-        # 可以基于关键词进一步调整
+        # reflection generated insights have default higher importance (7-9)
         
         base_importance = 7
         
-        # 高重要性关键词
+        # high importance keywords
         high_importance_keywords = [
             "重要", "关键", "核心", "主要", "显著",
-            "明显", "强烈", "深刻", "持续", "频繁"
+            "明显", "强烈", "深刻", "持续", "频繁",
+            "important", "key", "core", "main", "significant",
+            "obvious", "strong", "deep", "continuous", "frequent",
         ]
         
-        # 中等重要性关键词
+        # medium importance keywords
         medium_importance_keywords = [
-            "倾向", "趋势", "可能", "似乎", "表现出"
+            "倾向", "趋势", "可能", "似乎", "表现出",
+            "tendency", "trend", "possible", "seems", "show",
         ]
         
-        # 检查关键词
+        # check keywords
         insight_lower = insight.lower()
         
         if any(kw in insight_lower for kw in high_importance_keywords):
@@ -592,11 +587,11 @@ class ReflectModule:
         reset_accumulation: bool = True
     ):
         """
-        更新反思状态（在完成一次反思后调用）
+        update reflection state (call after one reflection)
         
         Args:
-            current_time: 当前时间戳
-            reset_accumulation: 是否重置累积重要性
+            current_time: current timestamp
+            reset_accumulation: whether to reset accumulated importance
         """
         if current_time is None:
             current_time = time.time()
@@ -613,13 +608,13 @@ class ReflectModule:
     
     def add_importance(self, importance: int):
         """
-        添加到累积重要性
+        add to accumulated importance
         
         Args:
-            importance: 要添加的重要性值
+            importance: importance value to add
         """
         self.accumulated_importance += importance
 
 
-# 保持向后兼容的别名
+# keep backward compatibility alias
 ReflectionEngine = ReflectModule

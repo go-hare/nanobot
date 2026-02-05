@@ -15,7 +15,7 @@ class ContextBuilder:
     Assembles bootstrap files, skills, and conversation history
     into a coherent prompt for the LLM.
     
-    注意：记忆系统现在由 MemoryManager 管理，通过 memory_context 参数传入。
+    Note: The memory system is now managed by MemoryManager, passed in through the memory_context parameter.
     """
     
     BOOTSTRAP_FILES = ["AGENTS.md", "SOUL.md", "USER.md", "TOOLS.md", "IDENTITY.md"]
@@ -28,8 +28,8 @@ class ContextBuilder:
         """
         Build the system prompt from bootstrap files and skills.
         
-        注意：记忆上下文通过 build_messages 的 memory_context 参数传入，
-        由 MemoryManager 的 3D 检索提供。
+        Note: The memory context is passed in through the memory_context parameter of build_messages,
+        provided by the 3D retrieval of MemoryManager.
         
         Args:
             skill_names: Optional list of skills to include.
@@ -73,7 +73,7 @@ Skills with available="false" need dependencies installed first - you can try in
         now = datetime.now().strftime("%Y-%m-%d %H:%M (%A)")
         workspace_path = str(self.workspace.expanduser().resolve())
         
-        return f"""# agents 🐈
+        return f"""# nanobot 🐈
 
 You are agents, a helpful AI assistant. You have access to tools that allow you to:
 - Read, write, and edit files
@@ -90,12 +90,12 @@ Your workspace is at: {workspace_path}
 - Custom skills: {workspace_path}/skills/{{skill-name}}/SKILL.md
 
 ## Memory System
-你的记忆系统是自动管理的（Stanford Generative Agents 风格）：
-- 所有对话都会自动存入记忆流
-- 系统会自动评估每条消息的重要性
-- 相关记忆会通过 3D 检索（时间+重要性+相关性）自动注入到上下文中
-- 当累积重要性达到阈值时，系统会自动触发反思，生成高层次洞见
-- **你不需要手动写入记忆文件，一切都是自动的**
+Your memory system is automatically managed (Stanford Generative Agents style):
+- All conversations will be automatically stored in the memory stream
+- The system will automatically evaluate the importance of each message
+- Relevant memories will be automatically injected into the context through 3D retrieval (time + importance + relevance)
+- When the accumulated importance reaches the threshold, the system will automatically trigger reflection, generating high-level insights
+- **You do not need to manually write to memory files, everything is automatic**
 
 IMPORTANT: When responding to direct questions or conversations, reply directly with your text response.
 Only use the 'message' tool when you need to send a message to a specific chat channel (like WhatsApp).
@@ -141,7 +141,7 @@ Always be helpful, accurate, and concise. When using tools, explain what you're 
         # System prompt
         system_prompt = self.build_system_prompt(skill_names)
         
-        # 如果有记忆上下文，追加到系统提示词中
+        # if there is memory context, append it to the system prompt
         if memory_context:
             system_prompt = f"{system_prompt}\n\n---\n\n{memory_context}"
         

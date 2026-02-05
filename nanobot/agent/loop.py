@@ -1,16 +1,16 @@
 """Agent loop: the core processing engine.
 
-集成 Stanford Generative Agents 记忆系统的流程：
+The Stanford Generative Agents memory system flow:
 
-1. 收消息 
-2. → [新增] 存入记忆(observation) + 评估重要性
-3. → [新增] 检索相关记忆(3D retrieval)
-4. → 构建context（包含检索到的记忆）
-5. → 调LLM 
-6. → 执行tools 
-7. → [新增] 检查是否触发反思
-8. → [新增] 存入记忆(assistant response)
-9. → 响应
+1. Receive message
+2. [New] Store observation + evaluate importance
+3. [New] Retrieve relevant memories (3D retrieval)
+4. Build context (includes retrieved memories)
+5. Call LLM
+6. Execute tools
+7. [New] Check if reflection is triggered
+8. [New] Store assistant response
+9. Response
 """
 
 import asyncio
@@ -39,7 +39,7 @@ class AgentLoop:
     """
     The agent loop is the core processing engine.
     
-    集成 Stanford Generative Agents 记忆系统：
+    The Stanford Generative Agents memory system flow:
     1. Receives messages from the bus
     2. [NEW] Stores observation + evaluates importance
     3. [NEW] Retrieves relevant memories (3D retrieval)
@@ -60,7 +60,7 @@ class AgentLoop:
         max_iterations: int = 20,
         brave_api_key: str | None = None,
         exec_config: "ExecToolConfig | None" = None,
-        # 记忆系统配置
+        # memory system configuration
         memory_enabled: bool = True,
         embedding_config: Optional[Dict[str, Any]] = None,
         reflection_threshold: int = 150,
@@ -75,7 +75,7 @@ class AgentLoop:
         self.brave_api_key = brave_api_key
         self.exec_config = exec_config or ExecToolConfig()
         
-        # 记忆系统配置
+        # memory system configuration
         self.memory_enabled = memory_enabled
         self.embedding_config = embedding_config
         self.reflection_threshold = reflection_threshold
@@ -93,7 +93,7 @@ class AgentLoop:
             exec_config=self.exec_config,
         )
         
-        # 记忆管理器缓存（每个session一个）
+        # memory manager cache (one per session)
         self._memory_managers: Dict[str, MemoryManager] = {}
         
         self._running = False
@@ -101,13 +101,13 @@ class AgentLoop:
     
     def _get_memory_manager(self, session_key: str) -> Optional[MemoryManager]:
         """
-        获取或创建会话的记忆管理器
+        Get or create the memory manager for the session
         
         Args:
-            session_key: 会话标识
+            session_key: session identifier
         
         Returns:
-            MemoryManager实例，如果记忆系统禁用则返回None
+            MemoryManager instance, return None if memory system is disabled
         """
         if not self.memory_enabled:
             return None
@@ -188,16 +188,16 @@ class AgentLoop:
         """
         Process a single inbound message.
         
-        实现 Stanford GA 记忆增强流程：
-        1. 收消息 
-        2. [新增] 存入记忆(observation) + 评估重要性
-        3. [新增] 检索相关记忆(3D retrieval)
-        4. 构建context（包含检索到的记忆）
-        5. 调LLM 
-        6. 执行tools 
-        7. [新增] 检查是否触发反思
-        8. [新增] 存入记忆(assistant response)
-        9. 响应
+        Implement Stanford GA memory enhancement flow:
+        1. Receive message 
+        2. [New] Store observation + evaluate importance
+        3. [New] Retrieve relevant memories (3D retrieval)
+        4. Build context (includes retrieved memories)
+        5. Call LLM 
+        6. Execute tools 
+        7. [New] Check if reflection is triggered
+        8. [New] Store assistant response
+        9. Response
         
         Args:
             msg: The inbound message to process.
@@ -215,7 +215,7 @@ class AgentLoop:
         # Get or create session
         session = self.sessions.get_or_create(msg.session_key)
         
-        # 获取记忆管理器
+        # Get memory manager
         memory_manager = self._get_memory_manager(msg.session_key)
         
         # Update tool contexts
@@ -227,7 +227,7 @@ class AgentLoop:
         if isinstance(spawn_tool, SpawnTool):
             spawn_tool.set_context(msg.channel, msg.chat_id)
         
-        # ========== 步骤2：存入用户消息到记忆 + 评估重要性 ==========
+        # ========== Step 2: Store user message to memory + evaluate importance ==========
         memory_context = ""
         if memory_manager:
             try:
@@ -243,7 +243,7 @@ class AgentLoop:
             except Exception as e:
                 logger.warning(f"Failed to add user message to memory: {e}")
             
-            # ========== 步骤3：检索相关记忆 (3D retrieval) ==========
+            # ========== Step 3: Retrieve relevant memories (3D retrieval) ==========
             try:
                 relevant_memories = await memory_manager.retrieve_relevant_memories(
                     query=msg.content,
@@ -254,15 +254,15 @@ class AgentLoop:
             except Exception as e:
                 logger.warning(f"Failed to retrieve memories: {e}")
         
-        # ========== 步骤4：构建context（包含检索到的记忆）==========
+        # ========== Step 4: Build context (includes retrieved memories) ==========
         messages = self.context.build_messages(
             history=session.get_history(),
             current_message=msg.content,
             media=msg.media if msg.media else None,
-            memory_context=memory_context,  # 新增：记忆上下文
+            memory_context=memory_context,  # New: memory context
         )
         
-        # ========== 步骤5-6：调LLM + 执行tools ==========
+        # ========== Step 5-6: Call LLM + execute tools ==========
         iteration = 0
         final_content = None
         
@@ -310,7 +310,7 @@ class AgentLoop:
         if final_content is None:
             final_content = "I've completed processing but have no response to give."
         
-        # ========== 步骤7：检查是否触发反思 ==========
+        # ========== Step 7: Check if reflection is triggered ==========
         if memory_manager:
             try:
                 reflection_nodes = await memory_manager.check_and_reflect(
@@ -322,7 +322,7 @@ class AgentLoop:
             except Exception as e:
                 logger.warning(f"Reflection failed: {e}")
             
-            # ========== 步骤8：存入助手回复到记忆 ==========
+            # ========== Step 8: Store assistant response to memory ==========
             try:
                 await memory_manager.add_observation(
                     content=final_content,
@@ -335,12 +335,12 @@ class AgentLoop:
             except Exception as e:
                 logger.warning(f"Failed to add assistant response to memory: {e}")
         
-        # Save to session (保持原有的session机制)
+        # Save to session (keep the existing session mechanism)
         session.add_message("user", msg.content)
         session.add_message("assistant", final_content)
         self.sessions.save(session)
         
-        # ========== 步骤9：响应 ==========
+        # ========== Step 9: Response ==========
         return OutboundMessage(
             channel=msg.channel,
             chat_id=msg.chat_id,

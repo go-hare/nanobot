@@ -1,10 +1,10 @@
 """
-向量生成器 - 为记忆生成向量表示
+EmbeddingGenerator - generate vector representation for memory
 
-支持多种embedding生成方式：
+Supports multiple embedding generation methods:
 1. OpenAI Embedding API
-2. 本地模型（通过Sentence Transformers）
-3. 自定义embedding provider
+2. Local model (through Sentence Transformers)
+3. Custom embedding provider
 """
 
 from typing import List, Optional, Dict, Any
@@ -15,19 +15,19 @@ TAG = __name__
 
 
 class EmbeddingGenerator:
-    """向量生成器"""
+    """vector generator"""
     
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         """
-        初始化向量生成器
+        initialize vector generator
         
         Args:
-            config: 配置字典，包含：
+            config: configuration dictionary, containing:
                 - provider: "openai", "local", "custom"
-                - model: 模型名称
-                - api_key: API密钥（如果使用OpenAI）
-                - base_url: API基础URL（可选）
-                - dimension: 向量维度
+                - model: model name
+                - api_key: API key (if using OpenAI)
+                - base_url: API base URL (optional)
+                - dimension: vector dimension
         """
         self.config = config if config is not None else {}
         self.provider = self.config.get("provider", "dummy")
@@ -36,7 +36,7 @@ class EmbeddingGenerator:
         self.api_key = self.config.get("api_key")
         self.base_url = self.config.get("base_url")
         
-        # 初始化embedding client
+        # initialize embedding client
         self.client = None
         self._initialize_client()
         
@@ -46,7 +46,7 @@ class EmbeddingGenerator:
         )
     
     def _initialize_client(self):
-        """初始化embedding客户端"""
+        """initialize embedding client"""
         if self.provider == "openai":
             try:
                 from openai import AsyncOpenAI
@@ -83,13 +83,13 @@ class EmbeddingGenerator:
     
     async def generate_embedding(self, text: str) -> List[float]:
         """
-        为文本生成向量表示
+        generate vector representation for text
         
         Args:
-            text: 输入文本
+            text: input text
         
         Returns:
-            向量表示（List[float]）
+            vector representation (List[float])
         """
         if not text or not text.strip():
             logger.bind(tag=TAG).warning("Empty text provided for embedding, returning zero vector")
@@ -108,13 +108,13 @@ class EmbeddingGenerator:
     
     async def generate_embeddings_batch(self, texts: List[str]) -> List[List[float]]:
         """
-        批量生成向量表示（提高效率）
+        generate vector representation for multiple texts (for efficiency)
         
         Args:
-            texts: 文本列表
+            texts: text list
         
         Returns:
-            向量列表
+            vector list
         """
         if self.provider == "openai":
             return await self._generate_openai_embeddings_batch(texts)
@@ -124,7 +124,7 @@ class EmbeddingGenerator:
             return [self._generate_dummy_embedding(text) for text in texts]
     
     async def _generate_openai_embedding(self, text: str) -> List[float]:
-        """使用OpenAI API生成embedding"""
+        """generate embedding using OpenAI API"""
         if self.client is None:
             raise RuntimeError("OpenAI client not initialized")
         
@@ -135,7 +135,7 @@ class EmbeddingGenerator:
         return response.data[0].embedding
     
     async def _generate_openai_embeddings_batch(self, texts: List[str]) -> List[List[float]]:
-        """批量生成OpenAI embeddings"""
+        """generate OpenAI embeddings batch"""
         if self.client is None:
             raise RuntimeError("OpenAI client not initialized")
         
@@ -146,17 +146,17 @@ class EmbeddingGenerator:
         return [item.embedding for item in response.data]
     
     async def _generate_local_embedding(self, text: str) -> List[float]:
-        """使用本地模型生成embedding"""
+        """generate embedding using local model"""
         if self.client is None:
             raise RuntimeError("Local model not initialized")
         
-        # SentenceTransformer的encode是同步的，在asyncio中运行
+        # SentenceTransformer's encode is synchronous, running in asyncio
         loop = asyncio.get_event_loop()
         embedding = await loop.run_in_executor(None, self.client.encode, text)
         return embedding.tolist()
     
     async def _generate_local_embeddings_batch(self, texts: List[str]) -> List[List[float]]:
-        """批量生成本地embeddings"""
+        """generate local embeddings batch"""
         if self.client is None:
             raise RuntimeError("Local model not initialized")
         
@@ -165,15 +165,15 @@ class EmbeddingGenerator:
         return [emb.tolist() for emb in embeddings]
     
     def _generate_dummy_embedding(self, text: str) -> List[float]:
-        """生成虚拟embedding（用于测试）"""
+        """generate dummy embedding (for testing)"""
         import hashlib
         import numpy as np
         
-        # 使用文本的hash值作为随机种子，保证相同文本总是生成相同的向量
+        # use text hash as random seed, ensuring same text always generates same vector
         seed = int(hashlib.md5(text.encode()).hexdigest(), 16) % (2**32)
         np.random.seed(seed)
         
-        # 生成随机向量并归一化
+        # generate random vector and normalize
         vec = np.random.randn(self.dimension)
         vec = vec / np.linalg.norm(vec)
         

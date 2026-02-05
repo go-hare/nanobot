@@ -1,14 +1,14 @@
 """
-检索模块 (Retrieve Module)
+Retrieve Module - retrieve relevant information from memories
 
-实现 Stanford GA 的三维记忆检索算法：
-1. Recency（最近性）：时间衰减，越近的记忆权重越高
-2. Importance（重要性）：记忆的重要性评分（1-10）
-3. Relevance（相关性）：与查询的语义相似度
+Implement Stanford GA's three-dimensional memory retrieval algorithm:
+1. Recency (recent): time decay, the closer the memory, the higher the weight
+2. Importance (important): memory importance score (1-10)
+3. Relevance (relevant): semantic similarity with the query
 
-检索分数 = α·recency + β·importance + γ·relevance
+Retrieval score = α·recency + β·importance + γ·relevance
 
-参考：Stanford Generative Agents 论文
+References: Stanford Generative Agents paper
 """
 
 import numpy as np
@@ -21,26 +21,26 @@ TAG = __name__
 
 class RetrieveModule:
     """
-    检索模块 - 从记忆中检索相关信息
+    Retrieve Module - retrieve relevant information from memories
     
-    这是 Stanford GA 认知循环的第一步：Retrieve
+    This is the first step of Stanford GA cognitive loop: Retrieve
     """
     
     def __init__(
         self,
-        alpha: float = 1.0,    # recency权重
-        beta: float = 1.0,     # importance权重
-        gamma: float = 1.0,    # relevance权重
-        decay_rate: float = 0.99,  # 时间衰减率（每小时衰减1%）
+        alpha: float = 1.0,    # recency weight
+        beta: float = 1.0,     # importance weight
+        gamma: float = 1.0,    # relevance weight
+        decay_rate: float = 0.99,  # time decay rate (1% decay per hour)
     ):
         """
-        初始化检索模块
+        initialize retrieve module
         
         Args:
-            alpha: 最近性权重
-            beta: 重要性权重
-            gamma: 相关性权重
-            decay_rate: 时间衰减率，默认0.99（每小时衰减1%）
+            alpha: recency weight
+            beta: importance weight
+            gamma: relevance weight
+            decay_rate: time decay rate, default 0.99 (1% decay per hour)
         """
         self.alpha = alpha
         self.beta = beta
@@ -60,16 +60,16 @@ class RetrieveModule:
         current_time: Optional[float] = None,
     ) -> List[Tuple[ConceptNode, float]]:
         """
-        检索最相关的k条记忆
+        retrieve the most relevant k memories
         
         Args:
-            query_embedding: 查询的向量表示
-            memories: 候选记忆列表
-            k: 返回的记忆数量
-            current_time: 当前时间戳，默认为当前时间
+            query_embedding: query embedding
+            memories: candidate memories list
+            k: number of memories to return
+            current_time: current timestamp, default is current time
         
         Returns:
-            List[Tuple[ConceptNode, float]]: (记忆节点, 综合得分) 的列表，按得分降序排列
+            List[Tuple[ConceptNode, float]]: (memory node, total score) list, sorted by score in descending order
         """
         if not memories:
             return []
@@ -77,7 +77,7 @@ class RetrieveModule:
         if current_time is None:
             current_time = time.time()
         
-        # 计算每条记忆的三维得分
+        # calculate the three-dimensional score for each memory
         scored_memories = []
         for memory in memories:
             score = self._calculate_retrieval_score(
@@ -85,16 +85,16 @@ class RetrieveModule:
                 memory=memory,
                 current_time=current_time
             )
-            # 确保分数是 Python 原生 float（避免 numpy.float64 序列化问题）
+            # ensure the score is Python native float (avoid numpy.float64 serialization problem)
             scored_memories.append((memory, float(score)))
             
-            # 记录访问（会影响last_accessed）
+            # record access (affects last_accessed)
             memory.record_access()
         
-        # 按得分降序排序
+        # sort by score in descending order
         scored_memories.sort(key=lambda x: x[1], reverse=True)
         
-        # 返回前k条
+        # return the top k memories
         return scored_memories[:k]
     
     def _calculate_retrieval_score(
@@ -104,28 +104,28 @@ class RetrieveModule:
         current_time: float,
     ) -> float:
         """
-        计算单条记忆的检索得分
+        calculate the retrieval score for a single memory
         
         Score = α·recency + β·importance + γ·relevance
         
         Args:
-            query_embedding: 查询向量
-            memory: 记忆节点
-            current_time: 当前时间戳
+            query_embedding: query embedding
+            memory: memory node
+            current_time: current timestamp
         
         Returns:
-            综合得分（0-1范围，已归一化）
+            retrieval score (0-1 range, normalized)
         """
-        # 1. 计算Recency（最近性）
+        # 1. calculate Recency (recent)
         recency = self._calculate_recency(memory, current_time)
         
-        # 2. 计算Importance（重要性）
+        # 2. calculate Importance (important)
         importance = self._calculate_importance(memory)
         
-        # 3. 计算Relevance（相关性）
+        # 3. calculate Relevance (relevant)
         relevance = self._calculate_relevance(query_embedding, memory)
         
-        # 4. 加权组合
+        # 4. weighted combination
         total_weight = self.alpha + self.beta + self.gamma
         score = (
             self.alpha * recency +
@@ -139,35 +139,35 @@ class RetrieveModule:
             f"final_score={score:.4f}"
         )
         
-        # 确保返回 Python 原生 float 类型
+        # ensure the return value is Python native float type
         return float(score)
     
     def _calculate_recency(self, memory: ConceptNode, current_time: float) -> float:
         """
-        计算最近性得分（时间衰减）
+        calculate recent score (time decay)
         
         recency = decay_rate ^ hours_since_creation
         
         Args:
-            memory: 记忆节点
-            current_time: 当前时间戳
+            memory: memory node
+            current_time: current timestamp
         
         Returns:
-            最近性得分（0-1）
+            recent score (0-1)
         """
         return memory.get_recency_score(current_time, self.decay_rate)
     
     def _calculate_importance(self, memory: ConceptNode) -> float:
         """
-        计算重要性得分（归一化到0-1）
+        calculate importance score (normalized to 0-1)
         
         Args:
-            memory: 记忆节点
+            memory: memory node (importance score 1-10)
         
         Returns:
-            重要性得分（0-1）
+            importance score (0-1)
         """
-        # 重要性评分是1-10，归一化到0-1
+        # importance score is 1-10, normalized to 0-1
         return (memory.importance - 1) / 9.0
     
     def _calculate_relevance(
@@ -176,26 +176,26 @@ class RetrieveModule:
         memory: ConceptNode,
     ) -> float:
         """
-        计算相关性得分（余弦相似度）
+        calculate relevance score (cosine similarity)
         
         Args:
-            query_embedding: 查询向量
-            memory: 记忆节点
+            query_embedding: query embedding
+            memory: memory node
         
         Returns:
-            相关性得分（0-1）
+            relevance score (0-1)
         """
         if memory.embedding is None or len(memory.embedding) == 0:
-            # 如果记忆没有向量表示，返回中等相关性
+            # if memory has no embedding, return medium relevance
             logger.bind(tag=TAG).warning(
                 f"Memory '{memory.node_id}' has no embedding, using default relevance 0.5"
             )
             return 0.5
         
-        # 计算余弦相似度
+        # calculate cosine similarity
         similarity = self._cosine_similarity(query_embedding, memory.embedding)
         
-        # 余弦相似度范围是[-1, 1]，转换到[0, 1]
+        # cosine similarity range is [-1, 1], normalized to [0, 1]
         normalized_similarity = (similarity + 1) / 2
         
         return normalized_similarity
@@ -203,14 +203,14 @@ class RetrieveModule:
     @staticmethod
     def _cosine_similarity(vec1: List[float], vec2: List[float]) -> float:
         """
-        计算两个向量的余弦相似度
+        calculate cosine similarity of two vectors
         
         Args:
-            vec1: 向量1
-            vec2: 向量2
+            vec1: vector 1
+            vec2: vector 2
         
         Returns:
-            余弦相似度（-1到1）
+            cosine similarity (-1 to 1)
         """
         if len(vec1) != len(vec2):
             logger.bind(tag=TAG).error(
@@ -218,11 +218,11 @@ class RetrieveModule:
             )
             return 0.0
         
-        # 转换为numpy数组
+        # convert to numpy array
         v1 = np.array(vec1)
         v2 = np.array(vec2)
         
-        # 计算余弦相似度
+        # calculate cosine similarity
         dot_product = np.dot(v1, v2)
         norm1 = np.linalg.norm(v1)
         norm2 = np.linalg.norm(v2)
@@ -230,7 +230,7 @@ class RetrieveModule:
         if norm1 == 0 or norm2 == 0:
             return 0.0
         
-        # 转换为 Python 原生 float，避免 msgpack 序列化问题
+        # convert to Python native float to avoid msgpack serialization problem
         return float(dot_product / (norm1 * norm2))
     
     def update_weights(
@@ -240,12 +240,12 @@ class RetrieveModule:
         gamma: Optional[float] = None,
     ):
         """
-        动态更新检索权重
+        dynamically update retrieval weights
         
         Args:
-            alpha: 新的recency权重
-            beta: 新的importance权重
-            gamma: 新的relevance权重
+            alpha: new recency weight
+            beta: new importance weight
+            gamma: new relevance weight
         """
         if alpha is not None:
             self.alpha = alpha
@@ -259,5 +259,5 @@ class RetrieveModule:
         )
 
 
-# 保持向后兼容的别名
+# keep backward compatibility alias
 MemoryRetrieval = RetrieveModule

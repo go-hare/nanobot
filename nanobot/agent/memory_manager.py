@@ -1,21 +1,21 @@
 """
-MemoryManager - 统一的记忆管理器
+MemoryManager: unified memory manager
 
-整合 Stanford Generative Agents 的记忆系统：
-- 记忆存储 (MemoryStream)
-- 重要性评估 (ImportanceScorer)
-- 向量生成 (EmbeddingGenerator)
-- 3D检索 (RetrieveModule)
-- 反思机制 (ReflectModule)
+Integrates the Stanford Generative Agents memory system:
+- Memory storage (MemoryStream)
+- Importance scoring (ImportanceScorer)
+- Embedding generation (EmbeddingGenerator)
+- 3D retrieval (RetrieveModule)
+- Reflection mechanism (ReflectModule)
 
-流程：
-1. 收消息 → 存入记忆(observation) + 评估重要性
-2. 检索相关记忆(3D retrieval)
-3. 构建context（包含检索到的记忆）
-4. 调LLM → 执行tools
-5. 检查是否触发反思
-6. 存入记忆(assistant response)
-7. 响应
+Flow:
+1. Receive message → Store observation + evaluate importance
+2. Retrieve relevant memories (3D retrieval)
+3. Build context (includes retrieved memories)
+4. Call LLM → Execute tools
+5. Check if reflection is triggered
+6. Store assistant response
+7. Response
 """
 
 import uuid
@@ -38,9 +38,9 @@ TAG = __name__
 
 class MemoryManager:
     """
-    统一的记忆管理器
+    Unified memory manager
     
-    整合所有记忆相关的操作，提供简洁的API供AgentLoop使用
+    Integrates all memory-related operations, providing a simple API for AgentLoop usage
     """
     
     def __init__(
@@ -53,20 +53,20 @@ class MemoryManager:
         use_llm_for_importance: bool = False,
     ):
         """
-        初始化记忆管理器
+        Initialize memory manager
         
         Args:
-            role_id: 角色/会话ID
-            workspace: 工作空间路径
-            embedding_config: 向量生成配置
-            reflection_threshold: 反思触发阈值
-            reflection_enabled: 是否启用反思
-            use_llm_for_importance: 是否使用LLM评估重要性
+            role_id: role/session ID
+            workspace: workspace path
+            embedding_config: embedding generation configuration
+            reflection_threshold: reflection trigger threshold
+            reflection_enabled: whether to enable reflection
+            use_llm_for_importance: whether to use LLM for importance evaluation
         """
         self.role_id = role_id
         self.workspace = workspace
         
-        # 初始化各个模块
+        # Initialize each module
         self.memory_stream = MemoryStream(
             role_id=role_id,
             save_to_file=True,
@@ -76,21 +76,21 @@ class MemoryManager:
         self.importance_scorer = ImportanceScorer(use_llm=use_llm_for_importance)
         
         self.embedding_generator = EmbeddingGenerator(embedding_config or {
-            "provider": "dummy",  # 默认使用dummy，生产环境应配置openai或local
+            "provider": "dummy",  # default using dummy, should configure openai or local in production environment
             "dimension": 1536,
         })
         
         self.retriever = RetrieveModule(
-            alpha=1.0,   # recency权重
-            beta=1.0,    # importance权重
-            gamma=1.0,   # relevance权重
+            alpha=1.0,   # recency weight
+            beta=1.0,    # importance weight
+            gamma=1.0,   # relevance weight
             decay_rate=0.99,
         )
         
         self.reflector = ReflectModule(
             threshold=reflection_threshold,
             depth=3,
-            min_time_interval=3600,  # 最小1小时间隔
+            min_time_interval=3600,  # minimum 1 hour interval
             enabled=reflection_enabled,
         )
         
@@ -107,28 +107,28 @@ class MemoryManager:
         metadata: Optional[Dict[str, Any]] = None,
     ) -> ConceptNode:
         """
-        添加观察记忆（用户消息或助手回复）
+        Add observation memory (user message or assistant response)
         
-        这是流程的第2步和第8步：
-        - 第2步：存入用户消息 + 评估重要性
-        - 第8步：存入助手回复
+        This is the 2nd and 8th step of the flow:
+        - Step 2: Store user message + evaluate importance
+        - Step 8: Store assistant response
         
         Args:
-            content: 记忆内容
-            role: 角色（user/assistant）
-            llm: LLM实例（用于重要性评估，可选）
-            metadata: 额外元数据
+            content: memory content
+            role: role (user/assistant)
+            llm: LLM instance (for importance evaluation, optional)
+            metadata: additional metadata
         
         Returns:
-            创建的记忆节点
+            created memory node
         """
-        # 1. 评估重要性
+        # 1. Evaluate importance
         importance = self.importance_scorer.score(content, role, llm)
         
-        # 2. 生成向量表示
+        # 2. Generate vector representation
         embedding = await self.embedding_generator.generate_embedding(content)
         
-        # 3. 创建记忆节点
+        # 3. Create memory node
         current_time = time.time()
         node = ConceptNode(
             node_id=f"obs_{uuid.uuid4().hex[:12]}",
@@ -142,7 +142,7 @@ class MemoryManager:
             metadata=metadata or {},
         )
         
-        # 4. 添加到记忆流
+        # 4. Add to memory stream
         self.memory_stream.add_node(node, accumulate_importance=True)
         
         logger.bind(tag=TAG).debug(
@@ -158,28 +158,28 @@ class MemoryManager:
         k: int = 5,
     ) -> List[Tuple[ConceptNode, float]]:
         """
-        检索相关记忆（3D retrieval）
+        Retrieve relevant memories (3D retrieval)
         
-        这是流程的第3步：检索相关记忆
+        This is the 3rd step of the flow: Retrieve relevant memories
         
         Args:
-            query: 查询文本（通常是用户的新消息）
-            k: 返回的记忆数量
+            query: query text (usually the user's new message)
+            k: number of memories to return
         
         Returns:
-            相关记忆列表，每项为(记忆节点, 综合得分)
+            relevant memories list, each item is (memory node, combined score)
         """
-        # 1. 生成查询向量
+        # 1. Generate query vector
         query_embedding = await self.embedding_generator.generate_embedding(query)
         
-        # 2. 获取所有记忆
+        # 2. Get all memories
         all_memories = self.memory_stream.get_all_nodes(include_expired=False)
         
         if not all_memories:
             logger.bind(tag=TAG).debug("No memories to retrieve from")
             return []
         
-        # 3. 使用3D检索
+        # 3. Use 3D retrieval
         relevant = self.retriever.retrieve(
             query_embedding=query_embedding,
             memories=all_memories,
@@ -198,30 +198,30 @@ class MemoryManager:
         max_memories: int = 10,
     ) -> str:
         """
-        将检索到的记忆格式化为上下文字符串
+        Format retrieved memories into a context string
         
-        这是流程的第4步的一部分：构建context
+        This is part of the 4th step of the flow: Build context
         
         Args:
-            memories: 检索到的记忆列表
-            max_memories: 最大记忆数量
+            memories: retrieved memories list
+            max_memories: maximum number of memories
         
         Returns:
-            格式化的记忆上下文
+            formatted memory context
         """
         if not memories:
             return ""
         
-        lines = ["## 相关记忆"]
+        lines = ["## Related memories"]
         
         for i, (node, score) in enumerate(memories[:max_memories], 1):
             age_hours = node.get_age_hours()
-            role_label = "用户" if node.role == "user" else "你"
+            role_label = "user" if node.role == "user" else "assistant"
             
-            # 格式：[时间前] 角色: 内容 (相关度)
+            # Format: [time ago] role: content (relevance)
             lines.append(
-                f"{i}. [{age_hours:.1f}小时前] {role_label}: {node.content} "
-                f"(重要性:{node.importance}, 相关度:{score:.2f})"
+                f"{i}. [{age_hours:.1f} hours ago] {role_label}: {node.content} "
+                f"(importance:{node.importance}, relevance:{score:.2f})"
             )
         
         return "\n".join(lines)
@@ -232,18 +232,18 @@ class MemoryManager:
         agent_name: str = "用户",
     ) -> List[ConceptNode]:
         """
-        检查是否需要反思，如果需要则执行反思
+        Check if reflection is needed, if needed then perform reflection
         
-        这是流程的第7步：检查是否触发反思
+        This is the 7th step of the flow: Check if reflection is triggered
         
         Args:
-            llm: LLM实例
-            agent_name: Agent名称
+            llm: LLM instance
+            agent_name: Agent name
         
         Returns:
-            生成的反思记忆列表（如果触发了反思）
+            generated reflection memories list (if reflection is triggered)
         """
-        # 1. 检查是否应该反思
+        # 1. Check if reflection is needed
         accumulated = self.memory_stream.accumulated_importance
         if not self.reflector.should_reflect(accumulated):
             return []
@@ -252,10 +252,10 @@ class MemoryManager:
             f"Reflection triggered! accumulated_importance={accumulated}"
         )
         
-        # 2. 获取最近的记忆
+        # 2. Get recent memories
         recent_memories = self.memory_stream.get_recent_nodes(n=50)
         
-        # 3. 生成反思问题
+        # 3. Generate reflection questions
         questions = await self.reflector.generate_reflection_questions_async(
             agent_name=agent_name,
             recent_memories=recent_memories,
@@ -263,13 +263,13 @@ class MemoryManager:
             num_questions=3,
         )
         
-        # 4. 为每个问题检索相关记忆并生成洞见
+        # 4. Retrieve relevant memories for each question and generate insights
         insights = []
         for question in questions:
-            # 检索与问题相关的记忆
+            # Retrieve relevant memories for the question
             relevant = await self.retrieve_relevant_memories(question, k=10)
             
-            # 生成洞见
+            # Generate insights
             question_insights = await self.reflector.generate_insights(
                 questions=[question],
                 relevant_memories=relevant,
@@ -278,7 +278,7 @@ class MemoryManager:
             )
             insights.extend(question_insights)
         
-        # 5. 将洞见存入记忆
+        # 5. Store insights into memory
         reflection_nodes = []
         for insight in insights:
             embedding = await self.embedding_generator.generate_embedding(insight["insight"])
@@ -299,11 +299,11 @@ class MemoryManager:
                 },
             )
             
-            # 反思记忆不累积重要性（避免无限反思）
+            # Reflection memory does not accumulate importance (to avoid infinite reflection)
             self.memory_stream.add_node(node, accumulate_importance=False)
             reflection_nodes.append(node)
         
-        # 6. 重置累积重要性
+        # 6. Reset accumulated importance
         self.memory_stream.reset_accumulated_importance()
         self.reflector.update_reflection_state()
         
@@ -315,34 +315,34 @@ class MemoryManager:
     
     def get_recent_context(self, n: int = 10) -> str:
         """
-        获取最近的记忆上下文（不基于查询）
+        Get recent memory context (not based on query)
         
         Args:
-            n: 返回的记忆数量
+            n: number of memories to return
         
         Returns:
-            格式化的记忆上下文
+            formatted memory context
         """
         recent = self.memory_stream.get_recent_nodes(n=n)
         
         if not recent:
             return ""
         
-        lines = ["## 最近记忆"]
+        lines = ["## Recent memories"]
         
         for node in recent:
             age_hours = node.get_age_hours()
-            role_label = "用户" if node.role == "user" else "你"
-            type_label = "[反思]" if node.memory_type == "reflection" else ""
+            role_label = "user" if node.role == "user" else "assistant"
+            type_label = "[reflection]" if node.memory_type == "reflection" else ""
             
             lines.append(
-                f"- [{age_hours:.1f}小时前] {type_label}{role_label}: {node.content[:100]}"
+                f"- [{age_hours:.1f} hours ago] {type_label}{role_label}: {node.content[:100]}"
             )
         
         return "\n".join(lines)
     
     def get_statistics(self) -> Dict[str, Any]:
-        """获取记忆统计信息"""
+        """Get memory statistics"""
         stream_stats = self.memory_stream.get_statistics()
         
         return {
@@ -353,5 +353,5 @@ class MemoryManager:
         }
     
     def clear_expired(self) -> int:
-        """清理过期记忆"""
+        """Clear expired memories"""
         return self.memory_stream.clear_expired_nodes()

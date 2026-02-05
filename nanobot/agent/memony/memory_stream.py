@@ -1,8 +1,8 @@
 """
-MemoryStream - 记忆流
+MemoryStream 
 
-管理所有记忆节点，按时间顺序存储
-提供基础的增删查改功能
+Manage all memory nodes, store them in chronological order
+Provide basic add, delete, query, and modify functions
 """
 
 from typing import List, Optional, Dict, Any
@@ -15,87 +15,87 @@ from loguru import logger
 TAG = __name__
 
 class MemoryStream:
-    """记忆流 - 存储和管理所有记忆节点"""
+    """memory stream - store and manage all memory nodes"""
     
     def __init__(self, role_id: str, save_to_file: bool = True, memory_file: Optional[str] = None):
         """
-        初始化记忆流
+        initialize memory stream
         
         Args:
-            role_id: 用户/角色ID
-            save_to_file: 是否保存到文件
-            memory_file: 记忆文件路径（可选）
+            role_id: user/role ID
+            save_to_file: whether to save to file
+            memory_file: memory file path (optional)
         """
         self.role_id = role_id
         self.save_to_file = save_to_file
         
-        # 记忆存储
+        # memory storage
         self.nodes: Dict[str, ConceptNode] = {}  # {node_id: ConceptNode}
-        self.event_sequence: List[str] = []  # 事件序列（按时间顺序的node_id）
-        self.reflection_sequence: List[str] = []  # 反思序列
+        self.event_sequence: List[str] = []  # event sequence (node_id in chronological order)
+        self.reflection_sequence: List[str] = []  # reflection sequence
         
-        # 累计重要性（用于触发反思）
+        # accumulated importance (for triggering reflection)
         self.accumulated_importance = 0
         
-        # 文件路径
+        # file path
         if memory_file:
             self.memory_file = memory_file
-            
-        # 尝试加载已有记忆
+
+        # try to load existing memory
         if self.save_to_file:
             self.load_from_file()
     
     def add_node(self, node: ConceptNode, accumulate_importance: bool = True) -> str:
         """
-        添加一个记忆节点
+        add a memory node
         
         Args:
-            node: 记忆节点
-            accumulate_importance: 是否累积重要性（默认True）。
-                                   反思记忆通常设为False以避免无限反思
+            node: memory node
+            accumulate_importance: whether to accumulate importance (default True).
+                                    reflection memory is usually set to False to avoid infinite reflection
         
         Returns:
-            节点ID
+            node ID
         """
-        # 存储节点
+        # store node
         self.nodes[node.node_id] = node
         
-        # 添加到对应序列
+        # add to corresponding sequence
         if node.memory_type == "reflection":
             self.reflection_sequence.append(node.node_id)
         else:
             self.event_sequence.append(node.node_id)
         
-        # 累积重要性（可选）
+        # accumulate importance (optional)
         if accumulate_importance:
             self.accumulated_importance += node.importance
         
-        # 保存到文件
+        # save to file
         if self.save_to_file:
             self.save_to_file_async()
         
         logger.bind(tag=TAG).debug(
-            f"添加记忆: [{node.memory_type}] {node.content[:30]}... (importance={node.importance})"
+            f"added memory: [{node.memory_type}] {node.content[:30]}... (importance={node.importance})"
         )
         
         return node.node_id
     
     def get_node(self, node_id: str) -> Optional[ConceptNode]:
-        """获取指定记忆节点"""
+        """get specified memory node"""
         node = self.nodes.get(node_id)
         if node:
-            node.record_access()  # 记录访问
+            node.record_access()  # record access
         return node
     
     def get_all_nodes(self, include_expired: bool = False) -> List[ConceptNode]:
         """
-        获取所有记忆节点
+        get all memory nodes
         
         Args:
-            include_expired: 是否包含已过期的记忆
+            include_expired: whether to include expired memory
         
         Returns:
-            记忆节点列表
+            memory node list
         """
         current_time = time.time()
         
@@ -109,22 +109,22 @@ class MemoryStream:
     
     def get_recent_nodes(self, n: int = 100, memory_type: Optional[str] = None) -> List[ConceptNode]:
         """
-        获取最近的N条记忆
+        get recent N memory nodes
         
         Args:
-            n: 返回数量
-            memory_type: 记忆类型过滤（可选）
+            n: return number
+            memory_type: memory type filter (optional)
         
         Returns:
-            记忆节点列表
+            memory node list
         """
-        # 选择序列
+        # select sequence
         if memory_type == "reflection":
             sequence = self.reflection_sequence
         elif memory_type == "observation":
             sequence = self.event_sequence
         else:
-            # 合并并排序
+            # merge and sort
             all_ids = self.event_sequence + self.reflection_sequence
             sequence = sorted(
                 all_ids,
@@ -132,11 +132,11 @@ class MemoryStream:
                 reverse=True
             )
         
-        # 获取最近的N个
+        # get recent N nodes
         recent_ids = sequence[-n:]
-        recent_ids.reverse()  # 最新的在前
+        recent_ids.reverse()  # latest first
         
-        # 返回节点
+        # return nodes
         nodes = []
         for node_id in recent_ids:
             if node_id in self.nodes:
@@ -145,44 +145,41 @@ class MemoryStream:
         return nodes
     
     def get_nodes_by_type(self, memory_type: str) -> List[ConceptNode]:
-        """获取指定类型的所有记忆"""
+        """get all memory nodes of specified type"""
         return [
             node for node in self.nodes.values()
             if node.memory_type == memory_type
         ]
     
     def get_nodes_since(self, timestamp: float) -> List[ConceptNode]:
-        """获取指定时间后的所有记忆"""
+        """get all memory nodes since specified time"""
         return [
             node for node in self.nodes.values()
             if node.created >= timestamp
         ]
     
     def delete_node(self, node_id: str) -> bool:
-        """删除记忆节点"""
+        """delete memory node"""
         if node_id in self.nodes:
             node = self.nodes[node_id]
             
-            # 从序列中移除
             if node.memory_type == "reflection" and node_id in self.reflection_sequence:
                 self.reflection_sequence.remove(node_id)
             elif node_id in self.event_sequence:
                 self.event_sequence.remove(node_id)
             
-            # 删除节点
             del self.nodes[node_id]
             
-            # 保存
             if self.save_to_file:
                 self.save_to_file_async()
             
-            logger.bind(tag=TAG).debug(f"删除记忆: {node_id}")
+            logger.bind(tag=TAG).debug(f"deleted memory: {node_id}")
             return True
         
         return False
     
     def clear_expired_nodes(self) -> int:
-        """清理过期的记忆节点"""
+        """clear expired memory nodes"""
         current_time = time.time()
         expired_ids = [
             node_id for node_id, node in self.nodes.items()
@@ -193,12 +190,12 @@ class MemoryStream:
             self.delete_node(node_id)
         
         if expired_ids:
-            logger.bind(tag=TAG).info(f"清理了 {len(expired_ids)} 条过期记忆")
+            logger.bind(tag=TAG).info(f"cleared {len(expired_ids)} expired memory nodes")
         
         return len(expired_ids)
     
     def get_statistics(self) -> Dict[str, Any]:
-        """获取记忆统计信息"""
+        """get memory statistics"""
         return {
             'total_nodes': len(self.nodes),
             'observations': len(self.event_sequence),
@@ -209,17 +206,17 @@ class MemoryStream:
         }
     
     def reset_accumulated_importance(self):
-        """重置累计重要性（反思后调用）"""
+        """reset accumulated importance (after reflection)"""
         self.accumulated_importance = 0
-        logger.bind(tag=TAG).debug("重置累计重要性计数器")
+        logger.bind(tag=TAG).debug("reset accumulated importance counter")
     
     def save_to_file_async(self):
-        """异步保存到文件（不阻塞）"""
+        """async save to file (non-blocking)"""
         if not self.save_to_file:
             return
         
         try:
-            # 序列化数据
+            # serialize data
             data = {
                 'role_id': self.role_id,
                 'accumulated_importance': self.accumulated_importance,
@@ -232,54 +229,54 @@ class MemoryStream:
                 'last_updated': time.time()
             }
             
-            # 确保目录存在
+            # ensure directory exists
             os.makedirs(os.path.dirname(self.memory_file), exist_ok=True)
             
-            # 写入文件
+            # write to file
             with open(self.memory_file, 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
             
-            logger.bind(tag=TAG).debug(f"记忆已保存到文件: {self.memory_file}")
+            logger.bind(tag=TAG).debug(f"memory saved to file: {self.memory_file}")
         
         except Exception as e:
-            logger.bind(tag=TAG).error(f"保存记忆到文件失败: {e}")
+            logger.bind(tag=TAG).error(f"failed to save memory to file: {e}")
     
     def load_from_file(self):
-        """从文件加载记忆"""
+        """load from file"""
         if not os.path.exists(self.memory_file):
-            logger.bind(tag=TAG).info(f"记忆文件不存在，将创建新的记忆流: {self.memory_file}")
+            logger.bind(tag=TAG).info(f"memory file not found, creating new memory stream: {self.memory_file}")
             return
         
         try:
             with open(self.memory_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
             
-            # 恢复数据
+            # restore data
             self.role_id = data.get('role_id', self.role_id)
             self.accumulated_importance = data.get('accumulated_importance', 0)
             self.event_sequence = data.get('event_sequence', [])
             self.reflection_sequence = data.get('reflection_sequence', [])
             
-            # 恢复节点
+            # restore nodes
             nodes_data = data.get('nodes', {})
             for node_id, node_dict in nodes_data.items():
                 try:
                     self.nodes[node_id] = ConceptNode.from_dict(node_dict)
                 except Exception as e:
-                    logger.bind(tag=TAG).warning(f"恢复记忆节点失败 {node_id}: {e}")
+                    logger.bind(tag=TAG).warning(f"failed to restore memory node {node_id}: {e}")
             
             logger.bind(tag=TAG).info(
-                f"从文件加载了 {len(self.nodes)} 条记忆 (观察:{len(self.event_sequence)}, 反思:{len(self.reflection_sequence)})"
+                f"loaded {len(self.nodes)} memory nodes (observations:{len(self.event_sequence)}, reflections:{len(self.reflection_sequence)})"
             )
         
         except Exception as e:
-            logger.bind(tag=TAG).error(f"从文件加载记忆失败: {e}")
+            logger.bind(tag=TAG).error(f"failed to load memory from file: {e}")
     
     def __len__(self) -> int:
-        """返回记忆总数"""
+        """return memory total number"""
         return len(self.nodes)
     
     def __str__(self) -> str:
-        """字符串表示"""
+        """string representation"""
         stats = self.get_statistics()
         return f"MemoryStream(total={stats['total_nodes']}, obs={stats['observations']}, ref={stats['reflections']})"
