@@ -5,7 +5,6 @@ import mimetypes
 from pathlib import Path
 from typing import Any
 
-from nanobot.agent.memory import MemoryStore
 from nanobot.agent.skills import SkillsLoader
 
 
@@ -13,20 +12,24 @@ class ContextBuilder:
     """
     Builds the context (system prompt + messages) for the agent.
     
-    Assembles bootstrap files, memory, skills, and conversation history
+    Assembles bootstrap files, skills, and conversation history
     into a coherent prompt for the LLM.
+    
+    注意：记忆系统现在由 MemoryManager 管理，通过 memory_context 参数传入。
     """
     
     BOOTSTRAP_FILES = ["AGENTS.md", "SOUL.md", "USER.md", "TOOLS.md", "IDENTITY.md"]
     
     def __init__(self, workspace: Path):
         self.workspace = workspace
-        self.memory = MemoryStore(workspace)
         self.skills = SkillsLoader(workspace)
     
     def build_system_prompt(self, skill_names: list[str] | None = None) -> str:
         """
-        Build the system prompt from bootstrap files, memory, and skills.
+        Build the system prompt from bootstrap files and skills.
+        
+        注意：记忆上下文通过 build_messages 的 memory_context 参数传入，
+        由 MemoryManager 的 3D 检索提供。
         
         Args:
             skill_names: Optional list of skills to include.
@@ -43,11 +46,6 @@ class ContextBuilder:
         bootstrap = self._load_bootstrap_files()
         if bootstrap:
             parts.append(bootstrap)
-        
-        # Memory context
-        memory = self.memory.get_memory_context()
-        if memory:
-            parts.append(f"# Memory\n\n{memory}")
         
         # Skills - progressive loading
         # 1. Always-loaded skills: include full content
@@ -75,9 +73,9 @@ Skills with available="false" need dependencies installed first - you can try in
         now = datetime.now().strftime("%Y-%m-%d %H:%M (%A)")
         workspace_path = str(self.workspace.expanduser().resolve())
         
-        return f"""# nanobot 🐈
+        return f"""# agents 🐈
 
-You are nanobot, a helpful AI assistant. You have access to tools that allow you to:
+You are agents, a helpful AI assistant. You have access to tools that allow you to:
 - Read, write, and edit files
 - Execute shell commands
 - Search the web and fetch web pages
@@ -89,16 +87,21 @@ You are nanobot, a helpful AI assistant. You have access to tools that allow you
 
 ## Workspace
 Your workspace is at: {workspace_path}
-- Memory files: {workspace_path}/memory/MEMORY.md
-- Daily notes: {workspace_path}/memory/YYYY-MM-DD.md
 - Custom skills: {workspace_path}/skills/{{skill-name}}/SKILL.md
+
+## Memory System
+你的记忆系统是自动管理的（Stanford Generative Agents 风格）：
+- 所有对话都会自动存入记忆流
+- 系统会自动评估每条消息的重要性
+- 相关记忆会通过 3D 检索（时间+重要性+相关性）自动注入到上下文中
+- 当累积重要性达到阈值时，系统会自动触发反思，生成高层次洞见
+- **你不需要手动写入记忆文件，一切都是自动的**
 
 IMPORTANT: When responding to direct questions or conversations, reply directly with your text response.
 Only use the 'message' tool when you need to send a message to a specific chat channel (like WhatsApp).
 For normal conversation, just respond with text - do not call the message tool.
 
-Always be helpful, accurate, and concise. When using tools, explain what you're doing.
-When remembering something, write to {workspace_path}/memory/MEMORY.md"""
+Always be helpful, accurate, and concise. When using tools, explain what you're doing."""
     
     def _load_bootstrap_files(self) -> str:
         """Load all bootstrap files from workspace."""
@@ -118,6 +121,7 @@ When remembering something, write to {workspace_path}/memory/MEMORY.md"""
         current_message: str,
         skill_names: list[str] | None = None,
         media: list[str] | None = None,
+        memory_context: str | None = None,
     ) -> list[dict[str, Any]]:
         """
         Build the complete message list for an LLM call.
@@ -127,6 +131,7 @@ When remembering something, write to {workspace_path}/memory/MEMORY.md"""
             current_message: The new user message.
             skill_names: Optional skills to include.
             media: Optional list of local file paths for images/media.
+            memory_context: Optional relevant memories context (from 3D retrieval).
 
         Returns:
             List of messages including system prompt.
@@ -135,6 +140,11 @@ When remembering something, write to {workspace_path}/memory/MEMORY.md"""
 
         # System prompt
         system_prompt = self.build_system_prompt(skill_names)
+        
+        # 如果有记忆上下文，追加到系统提示词中
+        if memory_context:
+            system_prompt = f"{system_prompt}\n\n---\n\n{memory_context}"
+        
         messages.append({"role": "system", "content": system_prompt})
 
         # History
