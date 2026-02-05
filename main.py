@@ -16,8 +16,8 @@ from nanobot.bus import MessageBus
 
 CONFIG = {
     # 模型配置
-    "api_key": "sk-fa8b6835b72840c78b6147581471a081",
-    "api_base": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    "api_key": "",
+    "api_base": "",
     "model": "qwen-plus",  # qwen-turbo, qwen-plus, qwen-max
     
     # 工作空间（使用项目内的 workspace）
