@@ -1,0 +1,23 @@
+drives:
+  social:
+    initial: 50
+    decay_rate: 0.5
+    threshold_low: 20
+    threshold_high: 80
+    recover_per_chat: 20
+  energy:
+    initial: 100
+    decay_rate: 1.0
+    threshold_low: 10
+    threshold_zero: 0
+    recover_per_sleep: 80
+
+triggers:
+  proactive_chat:
+    condition: "social < 20"
+    probability: 0.3
+
+schedules:
+  decay_minutes: 30
+  reflect_hours: 1
+  proactive_check_minutes: 10

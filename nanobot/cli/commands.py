@@ -205,7 +205,7 @@ def _create_workspace_templates(workspace: Path):
     templates_dir = pkg_files("nanobot") / "templates"
 
     for item in templates_dir.iterdir():
-        if not item.name.endswith(".md"):
+        if not (item.name.endswith(".md") or item.name.endswith(".yaml")):
             continue
         dest = workspace / item.name
         if not dest.exists():
@@ -225,6 +225,23 @@ def _create_workspace_templates(workspace: Path):
     if not history_file.exists():
         history_file.write_text("", encoding="utf-8")
         console.print("  [dim]Created memory/HISTORY.md[/dim]")
+
+    emotion_log_template = templates_dir / "memory" / "EMOTION_LOG.md"
+    emotion_log_file = memory_dir / "EMOTION_LOG.md"
+    if not emotion_log_file.exists():
+        emotion_log_file.write_text(
+            emotion_log_template.read_text(encoding="utf-8"), encoding="utf-8"
+        )
+        console.print("  [dim]Created memory/EMOTION_LOG.md[/dim]")
+
+    config_dir = workspace / "config"
+    config_dir.mkdir(exist_ok=True)
+
+    drive_template = templates_dir / "drive_config.yaml"
+    drive_file = config_dir / "drive_config.yaml"
+    if not drive_file.exists() and drive_template.exists():
+        drive_file.write_text(drive_template.read_text(encoding="utf-8"), encoding="utf-8")
+        console.print("  [dim]Created config/drive_config.yaml[/dim]")
 
     (workspace / "skills").mkdir(exist_ok=True)
 
@@ -286,6 +303,7 @@ def gateway(
     from nanobot.cron.service import CronService
     from nanobot.cron.types import CronJob
     from nanobot.heartbeat.service import HeartbeatService
+    from nanobot.subconscious.daemon import SubconsciousDaemon
     
     if verbose:
         import logging
@@ -320,6 +338,9 @@ def gateway(
         mcp_servers=config.tools.mcp_servers,
         channels_config=config.channels,
     )
+    subconscious = SubconsciousDaemon(agent, config.workspace_path)
+    agent.subconscious_daemon = subconscious
+    subconscious.register_energy_recovery(cron)
     
     # Set cron callback (needs agent)
     async def on_cron_job(job: CronJob) -> str | None:
@@ -409,6 +430,7 @@ def gateway(
         try:
             await cron.start()
             await heartbeat.start()
+            subconscious.start_background_tasks()
             await asyncio.gather(
                 agent.run(),
                 channels.start_all(),
@@ -416,6 +438,7 @@ def gateway(
         except KeyboardInterrupt:
             console.print("\nShutting down...")
         finally:
+            subconscious.stop()
             await agent.close_mcp()
             heartbeat.stop()
             cron.stop()
@@ -444,6 +467,7 @@ def agent(
     from nanobot.bus.queue import MessageBus
     from nanobot.agent.loop import AgentLoop
     from nanobot.cron.service import CronService
+    from nanobot.subconscious.daemon import SubconsciousDaemon
     from loguru import logger
     
     config = load_config()
@@ -476,6 +500,8 @@ def agent(
         mcp_servers=config.tools.mcp_servers,
         channels_config=config.channels,
     )
+    subconscious = SubconsciousDaemon(agent_loop, config.workspace_path)
+    agent_loop.subconscious_daemon = subconscious
     
     # Show spinner when logs are off (no output to miss); skip when logs are on
     def _thinking_ctx():
@@ -496,10 +522,14 @@ def agent(
     if message:
         # Single message mode — direct call, no bus needed
         async def run_once():
-            with _thinking_ctx():
-                response = await agent_loop.process_direct(message, session_id, on_progress=_cli_progress)
-            _print_agent_response(response, render_markdown=markdown)
-            await agent_loop.close_mcp()
+            subconscious.start_background_tasks()
+            try:
+                with _thinking_ctx():
+                    response = await agent_loop.process_direct(message, session_id, on_progress=_cli_progress)
+                _print_agent_response(response, render_markdown=markdown)
+            finally:
+                subconscious.stop()
+                await agent_loop.close_mcp()
 
         asyncio.run(run_once())
     else:
@@ -521,6 +551,7 @@ def agent(
         signal.signal(signal.SIGINT, _exit_on_sigint)
 
         async def run_interactive():
+            subconscious.start_background_tasks()
             bus_task = asyncio.create_task(agent_loop.run())
             turn_done = asyncio.Event()
             turn_done.set()
@@ -591,6 +622,7 @@ def agent(
                         console.print("\nGoodbye!")
                         break
             finally:
+                subconscious.stop()
                 agent_loop.stop()
                 outbound_task.cancel()
                 await asyncio.gather(bus_task, outbound_task, return_exceptions=True)

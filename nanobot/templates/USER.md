@@ -1,49 +1,42 @@
-# User Profile
+# USER — 用户认知档案
+> 本文件记录关于用户的**客观认知**，由对话自动积累，也可手动编辑。
+> **反思机制**（SubconsciousDaemon，每 2 小时）会根据暖记忆更新此文件。
 
-Information about the user to help personalize interactions.
+## 基础信息
+- **名字**：（用户告知后更新）
+- **时区**：（自动检测或用户告知）
+- **常用语言**：中文
 
-## Basic Information
+## 偏好与习惯
+### 沟通风格
+- [ ] 随意闲聊
+- [ ] 专业简洁
+- [ ] 技术深入
 
-- **Name**: (your name)
-- **Timezone**: (your timezone, e.g., UTC+8)
-- **Language**: (preferred language)
+### 回复长度偏好
+- [ ] 简短直接
+- [ ] 详细说明
+- [ ] 看情况
 
-## Preferences
+### 技术水平
+- [ ] 入门
+- [ ] 中级
+- [ ] 专家
 
-### Communication Style
+## 工作背景
+- **主要角色**：（用户提到时更新）
+- **当前项目**：（对话中积累）
+- **常用工具**：（对话中积累）
 
-- [ ] Casual
-- [ ] Professional
-- [ ] Technical
+## 情感认知（暖记忆侧）
+> 以下内容由反思机制根据暖记忆自动更新，不建议手动修改。
 
-### Response Length
+- 近期情绪倾向：（自动更新）
+- 敏感话题：（自动更新）
+- 喜欢的话题：（自动更新）
 
-- [ ] Brief and concise
-- [ ] Detailed explanations
-- [ ] Adaptive based on question
-
-### Technical Level
-
-- [ ] Beginner
-- [ ] Intermediate
-- [ ] Expert
-
-## Work Context
-
-- **Primary Role**: (your role, e.g., developer, researcher)
-- **Main Projects**: (what you're working on)
-- **Tools You Use**: (IDEs, languages, frameworks)
-
-## Topics of Interest
-
-- 
-- 
-- 
-
-## Special Instructions
-
-(Any specific instructions for how the assistant should behave)
+## 特殊说明
+（任何用户主动告知的定制指令）
 
 ---
-
-*Edit this file to customize nanobot's behavior for your needs.*
+*本文件由 nanobot 自动维护，也可手动编辑。*

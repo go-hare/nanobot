@@ -42,6 +42,7 @@ dependencies = [
     "prompt-toolkit>=3.0.50,<4.0.0",
     "mcp>=1.26.0,<2.0.0",
     "json-repair>=0.57.0,<1.0.0",
+    "PyYAML>=6.0.0,<7.0.0",
 ]
 
 [project.optional-dependencies]
@@ -74,6 +75,7 @@ packages = ["nanobot"]
 include = [
     "nanobot/**/*.py",
     "nanobot/templates/**/*.md",
+    "nanobot/templates/**/*.yaml",
     "nanobot/skills/**/*.md",
     "nanobot/skills/**/*.sh",
 ]

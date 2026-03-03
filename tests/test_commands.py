@@ -53,6 +53,7 @@ def test_onboard_fresh_install(mock_paths):
     assert config_file.exists()
     assert (workspace_dir / "AGENTS.md").exists()
     assert (workspace_dir / "memory" / "MEMORY.md").exists()
+    assert (workspace_dir / "config" / "drive_config.yaml").exists()
 
 
 def test_onboard_existing_config_refresh(mock_paths):
