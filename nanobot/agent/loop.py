@@ -44,7 +44,6 @@ from nanobot.agent.flows.eq import (
     append_assistant_message as eq_append_assistant_message,
     eq_chat as eq_chat_flow,
     eq_polish as eq_polish_flow,
-    eq_refuse_task as eq_refuse_task_flow,
 )
 from nanobot.agent.flows.hybrid import (
     execute_hybrid_path as execute_hybrid_path_flow,
@@ -79,7 +78,6 @@ class RoutingDecision:
     intent_params: dict[str, Any]
     emotion_label: str
     progress_enabled: bool
-    should_refuse_task: bool
 
 
 class AgentLoop:
@@ -579,13 +577,11 @@ class AgentLoop:
             intent_params = {}
         logger.info("Intent routed → {} | {}", intent_type, intent.get("reason", ""))
         progress_enabled = not self.channels_config or self.channels_config.send_progress
-        should_refuse_task = intent_type == "Task" and self.emotion_mgr.drive.should_refuse_complex_task()
         return RoutingDecision(
             intent_type=intent_type,
             intent_params=intent_params,
             emotion_label=emotion_label,
             progress_enabled=progress_enabled,
-            should_refuse_task=should_refuse_task,
         )
 
     async def _execute_chat_path(
@@ -642,11 +638,6 @@ class AgentLoop:
         progress_cb: Callable[..., Awaitable[None]] | None,
     ) -> str:
         """第二层决策：按路由结果执行 Chat/Task/Hybrid。"""
-        if decision.should_refuse_task:
-            logger.info("Energy < 10, refusing complex task via EQ")
-            final_content = await eq_refuse_task_flow(self, msg.content)
-            self._save_simple_turn(session, msg.content, final_content)
-            return final_content
         if decision.intent_type == "Chat":
             return await self._execute_chat_path(msg, session, history)
         if decision.intent_type == "Task":
