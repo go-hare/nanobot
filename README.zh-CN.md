@@ -1,21 +1,21 @@
-# nanobot（中文）
+# emoticorebot（中文）
 
-nanobot 是一个超轻量级个人 AI 助手，采用 **融合管线架构（IQ + EQ）**。
+emoticorebot 是一个超轻量级个人 AI 助手，采用 **融合管线架构（IQ + EQ）**，源自原始 Nanobot 项目。
 
 ## 安装
 
 从源码安装（推荐开发场景）：
 
 ```bash
-git clone https://github.com/HKUDS/nanobot.git
-cd nanobot
+git clone https://github.com/HKUDS/emoticorebot.git
+cd emoticorebot
 pip install -e .
 ```
 
 从 PyPI 安装：
 
 ```bash
-pip install nanobot-ai
+pip install emoticorebot-ai
 ```
 
 ## 快速开始
@@ -23,10 +23,10 @@ pip install nanobot-ai
 1）初始化本地工作区：
 
 ```bash
-nanobot onboard
+emoticorebot onboard
 ```
 
-2）编辑 `~/.nanobot/config.json`（最小配置）：
+2）编辑 `~/.emoticorebot/config.json`（最小配置）：
 
 ```json
 {
@@ -47,13 +47,13 @@ nanobot onboard
 3）CLI 对话：
 
 ```bash
-nanobot agent
+emoticorebot agent
 ```
 
 4）启动网关（对接聊天渠道）：
 
 ```bash
-nanobot gateway
+emoticorebot gateway
 ```
 
 ## 架构
@@ -90,7 +90,7 @@ nanobot gateway
 - Matrix
 - Mochat
 
-渠道配置位于 `~/.nanobot/config.json` 的 `channels` 字段下。
+渠道配置位于 `~/.emoticorebot/config.json` 的 `channels` 字段下。
 
 ## MCP（Model Context Protocol）
 
@@ -130,26 +130,26 @@ nanobot gateway
 ## Docker
 
 ```bash
-docker build -t nanobot .
-docker run -v ~/.nanobot:/root/.nanobot --rm nanobot onboard
-docker run -v ~/.nanobot:/root/.nanobot -p 18790:18790 nanobot gateway
+docker build -t emoticorebot .
+docker run -v ~/.emoticorebot:/root/.emoticorebot --rm emoticorebot onboard
+docker run -v ~/.emoticorebot:/root/.emoticorebot -p 18790:18790 emoticorebot gateway
 ```
 
 ## 常用命令
 
 ```bash
-nanobot onboard
-nanobot agent
-nanobot gateway
-nanobot status
-nanobot cron list
-nanobot channels status
+emoticorebot onboard
+emoticorebot agent
+emoticorebot gateway
+emoticorebot status
+emoticorebot cron list
+emoticorebot channels status
 ```
 
 ## 项目结构
 
 ```text
-nanobot/
+emoticorebot/
 ├── core/                 # 融合流程编排
 ├── engines/              # IQ / EQ 执行层
 ├── memory/               # 分层记忆实现

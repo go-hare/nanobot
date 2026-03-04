@@ -1,10 +1,10 @@
 <div align="center">
-  <img src="nanobot_logo.png" alt="nanobot" width="500">
-  <h1>nanobot</h1>
-  <p>Ultra-lightweight personal AI assistant with a fusion pipeline architecture (IQ + EQ).</p>
+  <img src="emoticorebot_logo.png" alt="emoticorebot" width="500">
+  <h1>emoticorebot</h1>
+  <p>Ultra-lightweight personal AI assistant with a fusion pipeline architecture (IQ + EQ), derived from Nanobot.</p>
   <p>
-    <a href="https://pypi.org/project/nanobot-ai/"><img src="https://img.shields.io/pypi/v/nanobot-ai" alt="PyPI"></a>
-    <a href="https://pepy.tech/project/nanobot-ai"><img src="https://static.pepy.tech/badge/nanobot-ai" alt="Downloads"></a>
+    <a href="https://pypi.org/project/emoticorebot-ai/"><img src="https://img.shields.io/pypi/v/emoticorebot-ai" alt="PyPI"></a>
+    <a href="https://pepy.tech/project/emoticorebot-ai"><img src="https://static.pepy.tech/badge/emoticorebot-ai" alt="Downloads"></a>
     <img src="https://img.shields.io/badge/python-≥3.11-blue" alt="Python">
     <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
   </p>

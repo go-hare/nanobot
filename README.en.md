@@ -1,21 +1,21 @@
-# nanobot (English)
+# emoticorebot (English)
 
-nanobot is an ultra-lightweight personal AI assistant with a **fusion pipeline architecture (IQ + EQ)**.
+emoticorebot is an ultra-lightweight personal AI assistant with a **fusion pipeline architecture (IQ + EQ)**, derived from the original Nanobot project.
 
 ## Install
 
 Install from source (recommended for contributors):
 
 ```bash
-git clone https://github.com/HKUDS/nanobot.git
-cd nanobot
+git clone https://github.com/HKUDS/emoticorebot.git
+cd emoticorebot
 pip install -e .
 ```
 
 Install from PyPI:
 
 ```bash
-pip install nanobot-ai
+pip install emoticorebot-ai
 ```
 
 ## Quick Start
@@ -23,10 +23,10 @@ pip install nanobot-ai
 1) Initialize local workspace:
 
 ```bash
-nanobot onboard
+emoticorebot onboard
 ```
 
-2) Configure `~/.nanobot/config.json` (minimum):
+2) Configure `~/.emoticorebot/config.json` (minimum):
 
 ```json
 {
@@ -47,13 +47,13 @@ nanobot onboard
 3) Chat in CLI:
 
 ```bash
-nanobot agent
+emoticorebot agent
 ```
 
 4) Run gateway for chat channels:
 
 ```bash
-nanobot gateway
+emoticorebot gateway
 ```
 
 ## Architecture
@@ -90,11 +90,11 @@ Supported channels include:
 - Matrix
 - Mochat
 
-Channel config is in `~/.nanobot/config.json` under `channels`.
+Channel config is in `~/.emoticorebot/config.json` under `channels`.
 
 ## MCP (Model Context Protocol)
 
-nanobot supports MCP servers via config:
+emoticorebot supports MCP servers via config:
 
 ```json
 {
@@ -130,26 +130,26 @@ For production, enable workspace sandbox:
 ## Docker
 
 ```bash
-docker build -t nanobot .
-docker run -v ~/.nanobot:/root/.nanobot --rm nanobot onboard
-docker run -v ~/.nanobot:/root/.nanobot -p 18790:18790 nanobot gateway
+docker build -t emoticorebot .
+docker run -v ~/.emoticorebot:/root/.emoticorebot --rm emoticorebot onboard
+docker run -v ~/.emoticorebot:/root/.emoticorebot -p 18790:18790 emoticorebot gateway
 ```
 
 ## CLI Commands
 
 ```bash
-nanobot onboard
-nanobot agent
-nanobot gateway
-nanobot status
-nanobot cron list
-nanobot channels status
+emoticorebot onboard
+emoticorebot agent
+emoticorebot gateway
+emoticorebot status
+emoticorebot cron list
+emoticorebot channels status
 ```
 
 ## Project Structure
 
 ```text
-nanobot/
+emoticorebot/
 ├── core/                 # fusion orchestration
 ├── engines/              # IQ / EQ execution
 ├── memory/               # layered memory stores

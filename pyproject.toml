@@ -1,11 +1,11 @@
 [project]
-name = "nanobot-ai"
+name = "emoticorebot-ai"
 version = "0.1.4.post2"
 description = "A lightweight personal AI assistant framework"
 requires-python = ">=3.11"
 license = {text = "MIT"}
 authors = [
-    {name = "nanobot contributors"}
+    {name = "emoticorebot contributors"}
 ]
 keywords = ["ai", "agent", "chatbot"]
 classifiers = [
@@ -58,38 +58,38 @@ dev = [
 ]
 
 [project.scripts]
-nanobot = "nanobot.cli.commands:app"
+emoticorebot = "emoticorebot.cli.commands:app"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["nanobot"]
+packages = ["emoticorebot"]
 
 [tool.hatch.build.targets.wheel.sources]
-"nanobot" = "nanobot"
+"emoticorebot" = "emoticorebot"
 
 # Include non-Python files in skills and templates
 [tool.hatch.build]
 include = [
-    "nanobot/**/*.py",
-    "nanobot/templates/**/*.md",
-    "nanobot/templates/**/*.yaml",
-    "nanobot/skills/**/*.md",
-    "nanobot/skills/**/*.sh",
+    "emoticorebot/**/*.py",
+    "emoticorebot/templates/**/*.md",
+    "emoticorebot/templates/**/*.yaml",
+    "emoticorebot/skills/**/*.md",
+    "emoticorebot/skills/**/*.sh",
 ]
 
 [tool.hatch.build.targets.sdist]
 include = [
-    "nanobot/",
+    "emoticorebot/",
     "bridge/",
     "README.md",
     "LICENSE",
 ]
 
 [tool.hatch.build.targets.wheel.force-include]
-"bridge" = "nanobot/bridge"
+"bridge" = "emoticorebot/bridge"
 
 [tool.ruff]
 line-length = 100
