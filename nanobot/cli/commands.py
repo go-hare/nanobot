@@ -303,7 +303,7 @@ def gateway(
     from nanobot.cron.service import CronService
     from nanobot.cron.types import CronJob
     from nanobot.heartbeat.service import HeartbeatService
-    from nanobot.subconscious.daemon import SubconsciousDaemon
+    from nanobot.runtime.daemon import RuntimeDaemon
     
     if verbose:
         import logging
@@ -338,7 +338,7 @@ def gateway(
         mcp_servers=config.tools.mcp_servers,
         channels_config=config.channels,
     )
-    subconscious = SubconsciousDaemon(agent, config.workspace_path)
+    subconscious = RuntimeDaemon(agent, config.workspace_path)
     agent.subconscious_daemon = subconscious
     subconscious.register_energy_recovery(cron)
     
@@ -467,7 +467,7 @@ def agent(
     from nanobot.bus.queue import MessageBus
     from nanobot.agent.loop import AgentLoop
     from nanobot.cron.service import CronService
-    from nanobot.subconscious.daemon import SubconsciousDaemon
+    from nanobot.runtime.daemon import RuntimeDaemon
     from loguru import logger
     
     config = load_config()
@@ -500,7 +500,7 @@ def agent(
         mcp_servers=config.tools.mcp_servers,
         channels_config=config.channels,
     )
-    subconscious = SubconsciousDaemon(agent_loop, config.workspace_path)
+    subconscious = RuntimeDaemon(agent_loop, config.workspace_path)
     agent_loop.subconscious_daemon = subconscious
     
     # Show spinner when logs are off (no output to miss); skip when logs are on

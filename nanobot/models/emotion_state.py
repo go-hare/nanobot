@@ -137,7 +137,7 @@ class PADState:
     # ── 状态推导 ─────────────────────────────────────────────────────────────
 
     def get_emotion_label(self) -> str:
-        """PAD 数值 → 中文情绪标签（用于暖记忆元数据和检索）。"""
+        """PAD 数值 → 中文情绪标签（用于关系记忆元数据和检索）。"""
         if self.pleasure < -0.5:
             return "悲伤" if self.arousal < 0.3 else "愤怒"
         if self.pleasure > 0.5:
@@ -169,7 +169,7 @@ class DriveState:
     """驱动欲望指数（ai.md §1.2），取值范围 [0, 100]。"""
 
     social: float = 50.0   # 社交渴望：低→主动找人聊，高→话痨模式
-    energy: float = 100.0  # 精力值：低→拒绝复杂任务，归零→强制休眠
+    energy: float = 100.0  # 精力值：仅影响表达节奏与主动性，不影响任务执行
     social_decay_per_hour: float = 0.5
     energy_decay_per_hour: float = 1.0
     threshold_social_low: float = 20.0
@@ -200,12 +200,12 @@ class DriveState:
         return self.social < self.threshold_social_low
 
     def should_refuse_complex_task(self) -> bool:
-        """energy < 10：拒绝复杂任务。"""
-        return self.energy < self.threshold_energy_low
+        """兼容旧接口：任务始终允许执行。"""
+        return False
 
     def is_sleeping(self) -> bool:
-        """energy <= 0：强制休眠模式。"""
-        return self.energy <= self.threshold_energy_zero
+        """兼容旧接口：不再进入强制休眠阻断任务。"""
+        return False
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -427,7 +427,7 @@ class EmotionStateManager:
         )
         energy_desc = (
             "精力充沛" if self.drive.energy > 60
-            else ("有些疲惫" if self.drive.energy > 20 else "非常疲惫，需要休息")
+            else ("状态一般" if self.drive.energy > 20 else "状态偏低（将简洁表达）")
         )
         return f"""# Current State（实时快照）
 > 最后更新：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
@@ -455,11 +455,11 @@ class EmotionStateManager:
     # ── 对外接口 ──────────────────────────────────────────────────────────────
 
     def get_emotion_prompt(self) -> str:
-        """供 IntentRouter 和 ContextBuilder 读取当前情绪描述。"""
+        """供融合策略与上下文构建读取当前情绪描述。"""
         return self.pad.get_emotion_prompt()
 
     def get_emotion_label(self) -> str:
-        """供暖记忆写入时获取情绪标签。"""
+        """供关系记忆写入时获取情绪标签。"""
         return self.pad.get_emotion_label()
 
     def read_md(self) -> str:
@@ -522,7 +522,7 @@ class EmotionStateManager:
                     behavior        = event_behavior,
                 )
                 self.emotion_log.append(event)
-                return event  # 返回给调用方，供写入 EmotionMemoryStore
+                return event  # 返回给调用方，供写入 AffectiveStore
             return None
 
     def decay(self, hours: float = 0.5) -> None:
